@@ -10,7 +10,7 @@ prg=os.path.basename(sys.argv[0])
 
 def main(args):
 	if len(args)<3:
-		err('%s: v0.3.3 - A concoction by Andre Jonsson (2004-10-29)\n' % prg)
+		err('%s: v0.3.4 - A concoction by Andre Jonsson (2004-10-30)\n' % prg)
 		err('Usage [-q] <find-regex> <replace> <files & dirs...>\n')
 		err('   -q     By wewwy, wewwy quiet  (and rename without question)\n')
 		sys.exit(0)
@@ -31,9 +31,11 @@ def main(args):
 
 	fileList={}
 	for f in files:
-		names=glob.glob(f)
-		for n in names:
-			fileList[n]=1
+		fileList[f]=1
+
+	if not fileList:
+		err('%s: No files matched.\n' % prg)
+		sys.exit(1)
 
 	fileList=fileList.keys()
 	fileList.sort()
@@ -43,8 +45,18 @@ def main(args):
 		newName=strReplace(pattern, replace, name)
 		renamings.append((name, newName))
 
-	renamings=checkCollisions(renamings)
+	# check for no-op rename
+	newRenamings=[]
+	for name, newName in renamings:
+		if newName != name:
+			newRenamings.append((name, newName))
+	renamings=newRenamings
+
 	if not renamings:
+		err('%s: nothing to rename after no-ops removed.\n' % prg)
+		sys.exit(0)
+
+	if not validateRenamings(renamings):
 		sys.exit(1)
 
 	if not quiet:
@@ -84,7 +96,7 @@ def strReplace(pattern, replace, name):
 	return name
 
 
-def checkCollisions(renamings):
+def validateRenamings(renamings):
 	# check empty names
 	for name, newName in renamings:
 		if not newName:
@@ -92,13 +104,7 @@ def checkCollisions(renamings):
 				(prg, name, newName))
 			return False
 
-	# check for no-op rename
-	newRenamings=[]
-	for name, newName in renamings:
-		if newName != name:
-			newRenamings.append((name, newName))
-	renamings=newRenamings
-	
+
 	# check if renamed files collide
 	for idx0 in range(len(renamings)):
 		for idx1 in range(len(renamings)):
@@ -128,7 +134,7 @@ def checkCollisions(renamings):
 				(prg, name, newName))
 			return False
 	
-	return renamings
+	return True
 
 
 def createDirectories(pathName):
