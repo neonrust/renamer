@@ -4,14 +4,15 @@ import re, glob, sys, os, os.path
 
 out=sys.stdout.write
 err=sys.stderr.write
-prg=sys.argv[0]
+prg=os.path.basename(sys.argv[0])
 
 
 
 def main(args):
 	if len(args)<3:
-		err('%s: v0.3.2 - A concoction by Andre Jonsson (2004-10-25)\n' % prg)
+		err('%s: v0.3.3 - A concoction by Andre Jonsson (2004-10-29)\n' % prg)
 		err('Usage [-q] <find-regex> <replace> <files & dirs...>\n')
+		err('   -q     By wewwy, wewwy quiet  (and rename without question)\n')
 		sys.exit(0)
 
 	quiet=False
@@ -77,7 +78,7 @@ def strReplace(pattern, replace, name):
 		if not m:
 			return name
 		
-		name=name[0:idx+m.start()] + replace + name[idx+m.end():]
+		name=name[0:idx+m.start()] + m.expand(replace) + name[idx+m.end():]
 		idx=m.start()+len(replace)
 
 	return name
