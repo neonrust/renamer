@@ -104,7 +104,7 @@ def validateRenamings(renamings):
 				(prg, name, newName))
 			return False
 		if newName in ('.', '..', '/'):
-			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName)
+			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName))
 			return False
 
 
