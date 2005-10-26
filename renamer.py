@@ -107,7 +107,6 @@ def validateRenamings(renamings):
 			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName))
 			return False
 
-
 	# check if renamed files collide
 	for idx0 in range(len(renamings)):
 		for idx1 in range(len(renamings)):
