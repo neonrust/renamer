@@ -10,7 +10,7 @@ prg=os.path.basename(sys.argv[0])
 
 def main(args):
 	if len(args)<3:
-		err('%s: v0.3.5 - A concoction by Andre Jonsson (2005-02-02)\n' % prg)
+		err('%s: v0.3.7 - A concoction by Andre Jonsson (2006-04-16)\n' % prg)
 		err('Usage [-q] <find-regex> <replace> <files & dirs...>\n')
 		err('   -q     By wewwy, wewwy quiet  (and rename without question)\n')
 		return 0
@@ -42,21 +42,19 @@ def main(args):
 
 	renamings=[]
 	for name in fileList:
-		newName=strReplace(pattern, replace, name)
-		renamings.append((name, newName))
-
-	# remove renames that didn't result in a change
-	newRenamings=[]
-	for name, newName in renamings:
+		newName=pattern.sub(replace, name)
+		# check if new name is sane
+		if newName in ('', '.', '..', '/'):
+			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName))
+			return 1
 		if newName != name:
-			newRenamings.append((name, newName))
-	renamings=newRenamings
+			renamings.append((name, newName))
 
 	if not renamings:
-		err('%s: nothing to rename after no-ops removed.\n' % prg)
+		err('%s: nothing to be renamed.\n' % prg)
 		return 0
 
-	if not validateRenamings(renamings):
+	if not validateRenames(renamings):
 		return 1
 
 	if not quiet:
@@ -83,37 +81,14 @@ def main(args):
 	return 0
 
 
-def strReplace(pattern, replace, name):
-	idx=0
-	while 1:
-		m=pattern.search(name[idx:])
-		if not m:
-			return name
-		
-		name=name[0:idx+m.start()] + m.expand(replace) + name[idx+m.end():]
-		idx=m.start()+len(replace)
-
-	return name
-
-
-def validateRenamings(renamings):
-	# check empty names
-	for name, newName in renamings:
-		if not newName:
-			err('%s: can not rename to empty name: "%s" -> "%s"\n' %
-				(prg, name, newName))
-			return False
-		if newName in ('.', '..', '/'):
-			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName))
-			return False
-
+def validateRenames(renamings):
 	# check if renamed files collide
 	for idx0 in range(len(renamings)):
 		for idx1 in range(len(renamings)):
 			if idx0==idx1:
 				continue
 			if renamings[idx0][1]==renamings[idx1][1]:
-				err('%s: rename collision: "%s" & "%s" -> "%s"\n' %
+				err('%s: rename collision: "%s" & "%s" both renaming -> "%s"\n' %
 					(prg, renamings[idx0][0], renamings[idx1][0], renamings[idx0][1]))
 				return False
 
