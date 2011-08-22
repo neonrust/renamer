@@ -1,4 +1,5 @@
 #! /usr/bin/env python2.7
+# -*- encoding: utf-8 -*-
 
 import re, glob, sys, os
 
@@ -9,8 +10,8 @@ prg = os.path.basename(sys.argv[0])
 
 def main(args):
 	if len(args)<2:
-		err('%s: v1.1 - (c)2007-2009 Andre Jonsson\n' % prg)
-		err('Usage [-qr] <find-regex> <replace> [<files & dirs...>]\n')
+		err('%s: v1.1 - (c)2007-2011 André Jonsson\n' % prg)
+		err('Usage [-q] <find-regex> <replace> [<files & dirs...>]\n')
 		err('   -q     By wewwy, wewwy quiet  (and no questions asked)\n')
 		#err('   -r     Recurse down into directories when no files given.\n')
 		return 0
