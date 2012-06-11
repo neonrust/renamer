@@ -13,7 +13,6 @@ def main(args):
 		err('%s: v1.1 - (c)2007-2011 André Jonsson\n' % prg)
 		err('Usage [-q] <find-regex> <replace> [<files & dirs...>]\n')
 		err('   -q     By wewwy, wewwy quiet  (and no questions asked)\n')
-		#err('   -r     Recurse down into directories when no files given.\n')
 		return 0
 
 	quiet=False
