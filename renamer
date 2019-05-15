@@ -1,4 +1,4 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
 import re, glob, sys, os
@@ -7,37 +7,46 @@ out = sys.stdout.write
 err = sys.stderr.write
 prg = os.path.basename(sys.argv[0])
 
+encoding = sys.stdout.encoding
+
+arrow = u'\u25b6'
 
 def main(args):
-	if len(args)<2:
-		err('%s: v1.1 - (c)2007-2011 André Jonsson\n' % prg)
+	if len(args) < 2:
+		err('%s: v1.2 - (c)2007-2015 André Jonsson\n' % prg)
 		err('Usage [-q] <find-regex> <replace> [<files & dirs...>]\n')
 		err('   -q     By wewwy, wewwy quiet  (and no questions asked)\n')
+		err('   -fx    Overwrite existing files (force-existing)\n')
 		return 0
 
-	quiet=False
+	quiet = False
 	if '-q' in args:
 		quiet = True
-		del(args[args.index('-q')])
+		del args[args.index('-q')]
 
-	recurse=False
+	forcing = []
+	if '-fx' in args:
+		forcing.append('existing')
+		del args[args.index('-fx')]
+
+	recurse = False
 	#if '-r' in args:
 	#	recurse = True
 	#	del(args[args.index('-r')])
 
 	try:
-		pattern=re.compile(args[0])
-	except Exception, msg:
+		pattern = re.compile(args[0])
+	except Exception as msg:
 		err('%s: could not compile regular expression: %s\n%s' % (prg, args[0], msg))
 		return 1
 
-	replace=args[1]
-	files=args[2:]
+	replace = args[1]
+	files = args[2:]
 	if not files:
-		files=getFileList('.', recurse)
+		files = getFileList('.', recurse)
 
 	if not files:
-		err('%s: No files matched.\n' % prg)
+		err('%s: No files.\n' % prg)
 		return 1
 
 
@@ -45,20 +54,20 @@ def main(args):
 	for f in files:
 		fileList[f]=1
 
-	fileList=fileList.keys()
+	fileList = list(fileList.keys())
 	fileList.sort()
 
-	renamings=[]
+	renamings = []
 	for name in fileList:
 		dirName = os.path.dirname(name)
 		name = os.path.basename(name)
 
 		# perform the replacing of the name-part only
-		newName=pattern.sub(replace, name)
+		newName = pattern.sub(replace, name)
 		
 		# check if new name is completely insane
 		if newName in ('', '.', '..', '/'):
-			err('%s: can not rename: "%s" -> "%s"\n' % (prg, name, newName))
+			err('%s: can not rename: "%s" %s "%s"  (invalid name)\n' % (prg, name, arrow, newName))
 			return 1
 		if newName != name:
 			# re-attach the dirName to both
@@ -66,21 +75,26 @@ def main(args):
 			newName = os.path.join(dirName, newName)
 			
 			renamings.append((name, newName))
+		#else:
+		#	err('%s: skipping no change: "%s" %s "%s"' % (prg, name, arrow, newName))
 
 	if not renamings:
 		err('%s: nothing to be renamed.\n' % prg)
 		return 0
 
-	if not validateRenames(renamings):
+	if not validateRenames(renamings, forceExisting=('existing' in forcing)):
 		return 1
 
 	if not quiet:
 		for name, newName in renamings:
-			out(' "%s"  ->  "%s"\n' % (name, newName))
+			warning = ''
+			if os.path.exists(newName):
+				warning = ' O!'
+			out(' \'%s\' %s \'%s\'%s\n' % (name, arrow, newName, warning))
 
 	if not quiet:
 		try:
-			answer=raw_input('** Continue with rename? [Y/n] ').strip()
+			answer = input('** Continue with rename? [Y/n] ').strip()
 			if answer=='n':
 				return 0
 		except:
@@ -92,40 +106,47 @@ def main(args):
 		try:
 			createDirectories(os.path.dirname(newName))
 			os.rename(name, newName)
-		except Exception, msg:
+		except Exception as msg:
 			err('%s: renaming "%s" to "%s" failed: %s\n' % (prg, name, newName, msg))
 
 	return 0
 
 
-def validateRenames(renamings):
+def validateRenames(renamings, forceExisting=False):
 	# check if renamed files collide
 	for idx0 in range(len(renamings)):
 		for idx1 in range(len(renamings)):
-			if idx0==idx1:
+			if idx0 == idx1:
 				continue
+
 			if renamings[idx0][1]==renamings[idx1][1]:
-				err('%s: rename collision: "%s" & "%s" both renaming -> "%s"\n' %
-					(prg, renamings[idx0][0], renamings[idx1][0], renamings[idx0][1]))
+				err('%s: rename collision: "%s" & "%s" both renaming %s "%s"\n' %
+					(prg, renamings[idx0][0], renamings[idx1][0], arrow, renamings[idx0][1]))
+				
 				return False
 
 	# check if any renamed file collide with any, not yet renamed, original file
+	# TODO: re-order ?
 	for idx0 in range(len(renamings)):
 		for idx1 in range(idx0, len(renamings)):
-			if idx0==idx1:
+			if idx0 == idx1:
 				continue
-			if renamings[idx0][1]==renamings[idx1][0]:
-				err('%s: renaming "%s" -> "%s" would collide with "%s"\n' %
-					(prg, renamings[idx0][0], renamings[idx0][1], renamings[idx1][0]))
+
+			if renamings[idx0][1] == renamings[idx1][0]:
+				err('%s: renaming "%s" %s "%s" would overwrite to-be renamed "%s"\n' %
+					(prg, renamings[idx0][0], arrow, renamings[idx0][1], renamings[idx1][0]))
+
 				return False
 
 	# check if renamed files collide with existing files
-	for name, newName in renamings:
-		if os.path.exists(newName):
-			err('%s: rename collision with existing file/directory: "%s" -> "%s"\n' %
-				(prg, name, newName))
-			return False
-	
+	if not forceExisting:
+		for name, newName in renamings:
+			if os.path.exists(newName):
+				err('%s: rename collision with existing file/directory: "%s" %s "%s"\n' %
+					(prg, name, arrow, newName))
+
+				return False
+
 	return True
 
 
